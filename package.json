@@ -21,7 +21,13 @@
     "extends": [
       "react-app",
       "react-app/jest"
-    ]
+    ],
+    "parserOptions": {
+      "ecmaVersion": 2020
+    },
+    "globals": {
+      "BigInt": "readonly"
+    }
   },
   "browserslist": {
     "production": [
