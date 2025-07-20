@@ -22,7 +22,8 @@ const MainPage = () => {
   });
 
   const [collectionForm, setCollectionForm] = useState({
-    ownerCapId: '',
+    adminCapId: '',
+    registry: '',
     name: '',
     description: '',
     mintType: '0', // 0: Free, 1: Fixed Price, 2: Dynamic Price
@@ -36,7 +37,9 @@ const MainPage = () => {
   });
 
   const [nftForm, setNftForm] = useState({
+    adminCapId: '',
     collectionId: '',
+    recipient: '',
     name: '',
     description: '',
     imageUrl: '',
@@ -150,7 +153,8 @@ const MainPage = () => {
       tx.moveCall({
         target: `${packageId}::hashcase_module::create_collection`,
         arguments: [
-          tx.object(collectionForm.ownerCapId),
+          tx.object(collectionForm.adminCapId),
+          tx.object(collectionForm.registry),
           tx.pure.string(collectionForm.name),
           tx.pure.string(collectionForm.description),
           tx.pure.u8(Number(collectionForm.mintType)),
@@ -165,19 +169,19 @@ const MainPage = () => {
       });
 
       await signAndExecute({ transaction: tx });
-      setCollectionForm({
-        ownerCapId: '',
-        name: '',
-        description: '',
-        mintType: '0',
-        baseMintPrice: '0',
-        isOpenEdition: false,
-        maxSupply: '0',
-        isDynamic: false,
-        isClaimable: false,
-        baseImageUrl: '',
-        baseAttributes: ''
-      });
+      // setCollectionForm({
+      //   adminCapId: '',
+      //   name: '',
+      //   description: '',
+      //   mintType: '0',
+      //   baseMintPrice: '0',
+      //   isOpenEdition: false,
+      //   maxSupply: '0',
+      //   isDynamic: false,
+      //   isClaimable: false,
+      //   baseImageUrl: '',
+      //   baseAttributes: ''
+      // });
     } catch (error) {
       console.error('Error creating collection:', error);
     } finally {
@@ -200,19 +204,23 @@ const MainPage = () => {
         .filter(Boolean);
 
       tx.moveCall({
-        target: `${packageId}::hashcase_module::free_mint_nft`,
+        target: `${packageId}::hashcase_module::admin_free_mint_nft`,
         arguments: [
+          tx.object(nftForm.adminCapId),
           tx.object(nftForm.collectionId),
           tx.pure.string(nftForm.name),
           tx.pure.string(nftForm.description),
           tx.pure.vector('u8', imageUrlBytes),
-          tx.pure.vector('string', attributesArray)
+          tx.pure.vector('string', attributesArray),
+          tx.pure.address(nftForm.recipient || currentAccount.address)
         ]
       });
 
       await signAndExecute({ transaction: tx });
       setNftForm({
+        adminCapId: '',
         collectionId: '',
+        recipient: '',
         name: '',
         description: '',
         imageUrl: '',
@@ -279,7 +287,7 @@ const MainPage = () => {
         .filter(Boolean);
       
       tx.moveCall({
-        target: `${packageId}::hashcase_module::free_mint_nft`,
+        target: `${packageId}::hashcase_module::admin_free_mint_nft`,
         arguments: [
           tx.object(nftForm.collectionId), // Use the full ObjectRef
           tx.pure.string(nftForm.name),
@@ -376,7 +384,7 @@ const MainPage = () => {
       const attributesArray = nftForm.attributes.split(',').map(attr => attr.trim()).filter(Boolean);
 
       txMint.moveCall({
-        target: `${packageId}::hashcase_module::free_mint_nft`, // Ensure this is your correct module and function
+        target: `${packageId}::hashcase_module::admin_free_mint_nft`, // Ensure this is your correct module and function
         arguments: [
           txMint.object(nftForm.collectionId),
           txMint.pure.string(nftForm.name),
@@ -540,7 +548,7 @@ const MainPage = () => {
         .map(attr => attr.trim())
         .filter(Boolean);
       tx.moveCall({
-        target: `${packageId}::hashcase_module::fixed_price_mint_nft`,
+        target: `${packageId}::hashcase_module::admin_fixed_price_mint_nft`,
         arguments: [
           tx.object(fixedMintForm.collectionId),
           payment,
@@ -586,7 +594,7 @@ const MainPage = () => {
         .filter(Boolean);
 
       tx.moveCall({
-        target: `${packageId}::hashcase_module::dynamic_price_mint_nft`,
+        target: `${packageId}::hashcase_module::admin_dynamic_price_mint_nft`,
         arguments: [
           tx.object(dynamicMintForm.collectionId),
           payment,
@@ -688,10 +696,18 @@ const MainPage = () => {
         <label>Owner Cap ID</label>
         <input
           type="text"
-          name="ownerCapId"
-          value={collectionForm.ownerCapId}
+          name="adminCapId"
+          value={collectionForm.adminCapId}
           onChange={handleCollectionChange}
           placeholder="Enter Owner Cap ID"
+        />
+        <label>Registry</label>
+        <input
+          type="text"
+          name="registry"
+          value={collectionForm.registry}
+          onChange={handleCollectionChange}
+          placeholder="Enter Registry Object ID"
         />
         <label>Collection Name</label>
         <input
@@ -785,6 +801,14 @@ const MainPage = () => {
       {/* Free Mint NFT */}
       <section className="form-section">
         <h2>Free Mint NFT</h2>
+        <label>Admin Cap ID</label>
+        <input
+          type="text"
+          name="adminCapId"
+          value={nftForm.adminCapId}
+          onChange={handleNFTChange}
+          placeholder="AdminCap object ID"
+        />
         <label>Collection ID</label>
         <input
           type="text"
@@ -792,6 +816,14 @@ const MainPage = () => {
           value={nftForm.collectionId}
           onChange={handleNFTChange}
           placeholder="Enter Collection ID"
+        />
+        <label>Recipient Address</label>
+        <input
+          type="text"
+          name="recipient"
+          value={nftForm.recipient}
+          onChange={handleNFTChange}
+          placeholder="Where to send NFT (defaults to you)"
         />
         <label>NFT Name</label>
         <input
@@ -824,7 +856,7 @@ const MainPage = () => {
           onChange={handleNFTChange}
           placeholder="Enter NFT Attributes"
         />
-        <button onClick={handleSponsorMintAndTransfer} disabled={loading}>
+        <button onClick={freeMintNFT} disabled={loading}>
           Free Mint NFT
         </button>
       </section>
